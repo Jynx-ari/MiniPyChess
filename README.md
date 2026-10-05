@@ -1,0 +1,2 @@
+# MiniPyChess
+pythonnn chess
