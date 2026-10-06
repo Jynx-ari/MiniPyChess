@@ -51,6 +51,7 @@ showMoves = True
 invalidSquare = None
 invalidS_time = 0
 
+gameover = False
 
 # ============================================================
 # INPUT HELPERS
@@ -95,6 +96,22 @@ def pieceCheck(square):
 # MOVE LOGIC
 # ============================================================
 
+
+def checkGame():
+  if board.is_checkmate():
+    global winner 
+    winner = "White" if board.turn == chess.BLACK else "Black"
+    print(f"Checkmate! {winner} wins!")
+    return True
+  if board.is_stalemate():
+    print("STALEMATE!!")
+    return True
+
+  if board.is_check():
+    print("Check!!")
+  return False
+
+
 def showInvalidMove(square):
     global invalidSquare, invalidS_time
 
@@ -117,12 +134,14 @@ def tryMove(start, end):
         print("Capture made!")
     else:
         print("Move made!")
-
+    gameover = checkGame()
     clearSelection()
     return True
 
 
 def handleMouseClick(position):
+    if gameover:
+      return
     global firstSelect
 
     chessSquare = squareFromMouse(position)
