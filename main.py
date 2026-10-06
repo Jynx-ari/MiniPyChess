@@ -263,15 +263,17 @@ def drawInvalidHighlight():
 
     elapsed = pygame.time.get_ticks() - invalidS_time
 
-    if elapsed < 500:
+    blinkCycle = 300
+    blinkOnTime = 150
+    totalDuration = 3 * blinkCycle
 
-        col = chess.square_file(
-            invalidSquare
-        )
+    if elapsed >= totalDuration:
+        invalidSquare = None
 
-        row = 7 - chess.square_rank(
-            invalidSquare
-        )
+    elif elapsed % blinkCycle < blinkOnTime:
+
+        col = chess.square_file(invalidSquare)
+        row = 7 - chess.square_rank(invalidSquare)
 
         pygame.draw.rect(
             overlay,
@@ -283,10 +285,6 @@ def drawInvalidHighlight():
                 TILE
             )
         )
-
-    else:
-
-        invalidSquare = None
 
 
 # ============================================================
