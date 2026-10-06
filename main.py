@@ -120,6 +120,7 @@ def showInvalidMove(square):
 
 
 def tryMove(start, end):
+    global gameover
     move = chess.Move(start, end)
 
     if move not in board.legal_moves:
