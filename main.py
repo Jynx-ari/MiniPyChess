@@ -13,9 +13,7 @@ pieceImages = {}
 
 for color in ["white", "black"]:
     for pieceType in ["king", "queen", "rook", "bishop", "knight", "pawn"]:
-
         path = f"assets/{color}_{pieceType}.png"
-
         pieceImages[f"{color}_{pieceType}"] = pygame.image.load(path)
 
 
@@ -30,18 +28,14 @@ TILE = WIDTH // 8
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("My Chess")
 
-overlay = pygame.Surface(
-    (WIDTH, HEIGHT),
-    pygame.SRCALPHA
-)
-
+overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
 font = pygame.font.SysFont(None, 30)
 
 board = chess.Board()
 
 
 # ============================================================
-# BOARD LABELS
+# BOARD DATA
 # ============================================================
 
 files = ["a", "b", "c", "d", "e", "f", "g", "h"]
@@ -55,8 +49,6 @@ ranks = ["8", "7", "6", "5", "4", "3", "2", "1"]
 firstSelect = None
 secondSelect = None
 
-currentHandPiece = None
-
 showMoves = True
 
 invalidSquare = None
@@ -66,32 +58,133 @@ running = True
 
 
 # ============================================================
-# PIECE CHECK
+# GAME STATE HELPERS
 # ============================================================
 
+def clearSelection():
+    global firstSelect, secondSelect
+
+    firstSelect = None
+    secondSelect = None
+
+
+def squareFromMouse(position):
+    x, y = position
+
+    column = x // TILE
+    row = y // TILE
+
+    return chess.square(column, 7 - row)
+
+
+def isOwnPiece(square):
+    piece = board.piece_at(square)
+
+    if piece is None:
+        return False
+
+    return piece.color == board.turn
+
+
 def pieceCheck(position):
+    piece = board.piece_at(position)
 
-    WhatPiece = board.piece_at(position)
-
-    if WhatPiece is None:
-
+    if piece is None:
         print("There is no piece there.. blind ahh")
+        return None
 
+    print(
+        "You grabbed:",
+        chess.COLOR_NAMES[piece.color],
+        chess.piece_name(piece.piece_type)
+    )
+
+    return piece
+
+
+# ============================================================
+# CHESS LOGIC
+# ============================================================
+
+def tryMove(start, end):
+    global invalidSquare, invalidS_time
+
+    move = chess.Move(start, end)
+
+    if move in board.legal_moves:
+        wasCapture = board.is_capture(move)
+
+        board.push(move)
+
+        if wasCapture:
+            print("Capture made!")
+
+        else:
+            print("Move made!")
+
+        clearSelection()
+        return True
+
+    print("Illegal move!")
+
+    invalidSquare = end
+    invalidS_time = pygame.time.get_ticks()
+
+    return False
+
+
+# ============================================================
+# INPUT
+# ============================================================
+
+def handleKeyPress(key):
+    global showMoves
+
+    if key == pygame.K_m:
+        showMoves = not showMoves
+
+    elif key == pygame.K_ESCAPE:
+        clearSelection()
+
+
+def handleMouseClick(position):
+    global firstSelect, secondSelect
+
+    chessSquare = squareFromMouse(position)
+    clickedPiece = pieceCheck(chessSquare)
+
+    # Nothing selected yet.
+    if firstSelect is None:
+
+        # Only allow the current player to select their piece.
+        if clickedPiece is not None and isOwnPiece(chessSquare):
+            firstSelect = chessSquare
+
+    # A piece is selected, so this click is the destination.
+    elif secondSelect is None:
+
+        # Clicking another friendly piece switches selection.
+        if clickedPiece is not None and isOwnPiece(chessSquare):
+            firstSelect = chessSquare
+            secondSelect = None
+
+        else:
+            secondSelect = chessSquare
+            tryMove(firstSelect, secondSelect)
+
+    # This should normally only exist briefly after an invalid move.
     else:
 
-        pieceInfo = {
-            "Color": chess.COLOR_NAMES[WhatPiece.color],
-            "Type": WhatPiece.piece_type,
-            "Name": chess.piece_name(WhatPiece.piece_type)
-        }
+        if clickedPiece is not None and isOwnPiece(chessSquare):
+            firstSelect = chessSquare
+            secondSelect = None
 
-        print(
-            "You grabbed:",
-            chess.COLOR_NAMES[WhatPiece.color],
-            chess.piece_name(WhatPiece.piece_type)
-        )
+        else:
+            clearSelection()
 
-        return WhatPiece
+    print("Clicked:", chess.square_name(chessSquare))
+    print("First:", firstSelect)
+    print("Second:", secondSelect)
 
 
 # ============================================================
@@ -139,11 +232,7 @@ def drawLabels():
         x = col * TILE + 5
         y = HEIGHT - text.get_height() - 5
 
-        screen.blit(
-            text,
-            (x, y)
-        )
-
+        screen.blit(text, (x, y))
 
     # RANK LABELS
     for row in range(8):
@@ -157,10 +246,7 @@ def drawLabels():
         x = 5
         y = row * TILE + 5
 
-        screen.blit(
-            text,
-            (x, y)
-        )
+        screen.blit(text, (x, y))
 
 
 # ============================================================
@@ -180,25 +266,20 @@ def drawPieces():
 
             piece = board.piece_at(chessSquare)
 
-            if piece is not None:
+            if piece is None:
+                continue
 
-                color = chess.COLOR_NAMES[piece.color]
+            color = chess.COLOR_NAMES[piece.color]
+            pieceType = chess.piece_name(piece.piece_type)
 
-                pieceType = chess.piece_name(
-                    piece.piece_type
-                )
+            image = pieceImages[
+                f"{color}_{pieceType}"
+            ]
 
-                image = pieceImages[
-                    f"{color}_{pieceType}"
-                ]
+            x = col * TILE + (TILE - 60) // 2
+            y = row * TILE + (TILE - 60) // 2
 
-                x = col * TILE + (TILE - 60) // 2
-                y = row * TILE + (TILE - 60) // 2
-
-                screen.blit(
-                    image,
-                    (x, y)
-                )
+            screen.blit(image, (x, y))
 
 
 # ============================================================
@@ -207,10 +288,7 @@ def drawPieces():
 
 def drawMoves():
 
-    if not showMoves:
-        return
-
-    if firstSelect is None:
+    if not showMoves or firstSelect is None:
         return
 
     for move in board.legal_moves:
@@ -228,7 +306,6 @@ def drawMoves():
             row * TILE + TILE // 2
         )
 
-        # CAPTURE
         if board.is_capture(move):
 
             pygame.draw.circle(
@@ -239,7 +316,6 @@ def drawMoves():
                 5
             )
 
-        # NORMAL MOVE
         else:
 
             pygame.draw.circle(
@@ -269,8 +345,9 @@ def drawInvalidHighlight():
 
     if elapsed >= totalDuration:
         invalidSquare = None
+        return
 
-    elif elapsed % blinkCycle < blinkOnTime:
+    if elapsed % blinkCycle < blinkOnTime:
 
         col = chess.square_file(invalidSquare)
         row = 7 - chess.square_rank(invalidSquare)
@@ -293,16 +370,10 @@ def drawInvalidHighlight():
 
 def drawSelections():
 
-    # FIRST SELECTED TILE
     if firstSelect is not None:
 
-        col = chess.square_file(
-            firstSelect
-        )
-
-        row = 7 - chess.square_rank(
-            firstSelect
-        )
+        col = chess.square_file(firstSelect)
+        row = 7 - chess.square_rank(firstSelect)
 
         pygame.draw.rect(
             screen,
@@ -316,17 +387,10 @@ def drawSelections():
             5
         )
 
-
-    # SECOND SELECTED TILE
     if secondSelect is not None:
 
-        col = chess.square_file(
-            secondSelect
-        )
-
-        row = 7 - chess.square_rank(
-            secondSelect
-        )
+        col = chess.square_file(secondSelect)
+        row = 7 - chess.square_rank(secondSelect)
 
         pygame.draw.rect(
             screen,
@@ -342,193 +406,45 @@ def drawSelections():
 
 
 # ============================================================
+# DRAW GAME
+# ============================================================
+
+def drawGame():
+
+    drawBoard()
+    drawLabels()
+
+    overlay.fill((0, 0, 0, 0))
+
+    drawPieces()
+    drawMoves()
+    drawInvalidHighlight()
+
+    screen.blit(overlay, (0, 0))
+
+    drawSelections()
+
+    pygame.display.flip()
+
+
+# ============================================================
 # MAIN LOOP
 # ============================================================
 
 while running:
 
-    # --------------------------------------------------------
-    # INPUT
-    # --------------------------------------------------------
-
     for event in pygame.event.get():
 
         if event.type == pygame.QUIT:
-
             running = False
 
+        elif event.type == pygame.KEYDOWN:
+            handleKeyPress(event.key)
 
-        # ----------------------------------------------------
-        # KEYBOARD
-        # ----------------------------------------------------
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            handleMouseClick(event.pos)
 
-        if event.type == pygame.KEYDOWN:
-
-            if event.key == pygame.K_m:
-
-                showMoves = not showMoves
-
-
-            if event.key == pygame.K_ESCAPE:
-
-                firstSelect = None
-                secondSelect = None
-                currentHandPiece = None
-
-
-        # ----------------------------------------------------
-        # MOUSE
-        # ----------------------------------------------------
-
-        if event.type == pygame.MOUSEBUTTONDOWN:
-
-            x, y = event.pos
-
-            ValColumn = x // TILE
-            ValRow = y // TILE
-
-            # Convert Pygame coordinates
-            # into a python-chess square
-
-            chessSquare = chess.square(
-                ValColumn,
-                7 - ValRow
-            )
-
-            currentHandPiece = pieceCheck(
-                chessSquare
-            )
-
-
-            # =================================================
-            # NOTHING SELECTED
-            # =================================================
-
-            if firstSelect is None:
-
-                if currentHandPiece is not None:
-
-                    firstSelect = chessSquare
-
-
-            # =================================================
-            # FIRST PIECE SELECTED
-            # =================================================
-
-            elif secondSelect is None:
-
-                if currentHandPiece is not None:
-
-                    # Click another piece
-                    # Switch selection
-
-                    firstSelect = chessSquare
-                    secondSelect = None
-
-                else:
-
-                    # Click empty square
-                    # This becomes destination
-
-                    secondSelect = chessSquare
-
-                    move = chess.Move(
-                        firstSelect,
-                        secondSelect
-                    )
-
-
-                    # -----------------------------------------
-                    # VALID MOVE
-                    # -----------------------------------------
-
-                    if move in board.legal_moves:
-
-                        board.push(move)
-
-                        print("Move made!")
-
-                        firstSelect = None
-                        secondSelect = None
-                        currentHandPiece = None
-
-
-                    # -----------------------------------------
-                    # INVALID MOVE
-                    # -----------------------------------------
-
-                    else:
-
-                        print("Illegal move!")
-
-                        invalidSquare = secondSelect
-
-                        invalidS_time = pygame.time.get_ticks()
-
-
-            # =================================================
-            # BOTH SELECTIONS EXIST
-            # =================================================
-
-            else:
-
-                if currentHandPiece is not None:
-
-                    # Start a new selection
-
-                    firstSelect = chessSquare
-                    secondSelect = None
-
-                else:
-
-                    # Cancel selections
-
-                    firstSelect = None
-                    secondSelect = None
-
-
-            print(
-                "Clicked:",
-                chess.square_name(chessSquare)
-            )
-
-            print(
-                "First:",
-                firstSelect
-            )
-
-            print(
-                "Second:",
-                secondSelect
-            )
-
-
-    # ========================================================
-    # DRAW
-    # ========================================================
-
-    drawBoard()
-
-    drawLabels()
-
-    overlay.fill(
-        (0, 0, 0, 0)
-    )
-
-    drawPieces()
-
-    drawMoves()
-
-    drawInvalidHighlight()
-
-    screen.blit(
-        overlay,
-        (0, 0)
-    )
-
-    drawSelections()
-
-    pygame.display.flip()
+    drawGame()
 
 
 pygame.quit()
