@@ -33,6 +33,10 @@ AI_DELAY_MS = 3000
 ai_thinking = False
 ai_think_start = 0
 
+MOVE_ANIMATION_MS = 220
+move_animation = None
+move_animation_start = 0
+
 
 def is_ai_turn():
     if not vsAI:
@@ -65,6 +69,18 @@ def handle_game_click(position):
     square = ui.square_from_mouse(position)
     if square is not None:
         game.select_square(square)
+
+
+def start_move_animation():
+    global move_animation, move_animation_start
+
+    if not ui.animations_enabled or game.last_move is None:
+        move_animation = None
+        return False
+
+    move_animation = game.last_move
+    move_animation_start = pygame.time.get_ticks()
+    return True
 
 
 def start_ai_thinking():
@@ -123,13 +139,19 @@ def main():
                     running = False
 
             elif app_state == "game":
-                if not ai_thinking:
+                if not ai_thinking and move_animation is None:
                     handle_game_click(event.pos)
 
                     if game.game_over:
-                        app_state = "game_over"
-                    elif is_ai_turn() and not game.is_promotion_pending():
-                        start_ai_thinking()
+                        if ui.animations_enabled and game.last_move is not None:
+                            start_move_animation()
+                        else:
+                            app_state = "game_over"
+                    elif game.last_move is not None:
+                        if start_move_animation():
+                            pass
+                        elif is_ai_turn() and not game.is_promotion_pending():
+                            start_ai_thinking()
 
             elif app_state == "game_over":
                 action = ui.handle_game_over_click(event.pos)
@@ -138,17 +160,34 @@ def main():
                     app_state = "game"
                     if is_ai_turn():
                         start_ai_thinking()
+                    if is_ai_turn():
+                        start_ai_thinking()
                 elif action == "menu":
                     game.reset()
                     app_state = "menu"
 
-        if app_state == "game" and ai_thinking:
+        if app_state == "game" and move_animation is not None:
+            elapsed = pygame.time.get_ticks() - move_animation_start
+            progress = min(1.0, elapsed / MOVE_ANIMATION_MS)
+
+            # Smooth ease-out movement.
+            progress = 1 - (1 - progress) ** 3
+            ui.draw_move_animation(game, move_animation, progress)
+
+            if elapsed >= MOVE_ANIMATION_MS:
+                move_animation = None
+                if game.game_over:
+                    app_state = "game_over"
+                elif is_ai_turn() and not game.is_promotion_pending():
+                    start_ai_thinking()
+
+        elif app_state == "game" and ai_thinking:
             if pygame.time.get_ticks() - ai_think_start >= AI_DELAY_MS:
                 app_state = finish_ai_turn()
 
         if app_state == "menu":
             ui.draw_menu()
-        elif app_state == "game":
+        elif app_state == "game" and move_animation is None:
             if ai_thinking:
                 ui.draw_ai_thinking(game)
             else:
