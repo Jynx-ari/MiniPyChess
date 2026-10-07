@@ -171,17 +171,28 @@ class UI:
       if flip:
           pygame.display.flip()
 
+    def draw_ai_thinking(self, game):
+        self.draw_game(game, flip=False)
+
+        self.overlay.fill((0, 0, 0, 150))
+        self.screen.blit(self.overlay, (0, 0))
+
+        text = self.title_font.render("AI THINKING...", True, (255, 255, 255))
+        self.screen.blit(text, text.get_rect(center=(320, 320)))
+
+        pygame.display.flip()
+
     def draw_game_over(self, game):
-      self.draw_game(game, flip=False)
-  
-      self.overlay.fill((0, 0, 0, 190))
-      self.screen.blit(self.overlay, (0, 0))
-  
-      message = "Stalemate" if game.winner is None else f"{game.winner} wins!"
-      title = self.title_font.render(message, True, (255, 255, 255))
-      self.screen.blit(title, title.get_rect(center=(320, 260)))
-  
-      for button in self.game_over_buttons:
-          button.draw(self.screen)
-  
-      pygame.display.flip()
+        self.draw_game(game, flip=False)
+
+        self.overlay.fill((0, 0, 0, 190))
+        self.screen.blit(self.overlay, (0, 0))
+
+        message = "Stalemate" if game.winner is None else f"{game.winner} wins!"
+        title = self.title_font.render(message, True, (255, 255, 255))
+        self.screen.blit(title, title.get_rect(center=(320, 260)))
+
+        for button in self.game_over_buttons:
+            button.draw(self.screen)
+
+        pygame.display.flip()
