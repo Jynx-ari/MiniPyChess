@@ -67,12 +67,9 @@ class UI:
                     f"assets/{color}_{name}.png"
                 )
 
-        self.animations_enabled = True
-
         self.menu_buttons = [
-            Button((190, 270, 260, 62), "PLAY", self.font, primary=True),
-            Button((190, 350, 260, 62), "ANIMATIONS: ON", self.font),
-            Button((190, 430, 260, 62), "QUIT", self.font),
+            Button((190, 285, 260, 62), "PLAY", self.font, primary=True),
+            Button((190, 365, 260, 62), "QUIT", self.font),
         ]
 
         self.game_over_buttons = [
@@ -98,12 +95,6 @@ class UI:
         if self.menu_buttons[0].clicked(position):
             return "game"
         if self.menu_buttons[1].clicked(position):
-            self.animations_enabled = not self.animations_enabled
-            self.menu_buttons[1].text = (
-                "ANIMATIONS: ON" if self.animations_enabled else "ANIMATIONS: OFF"
-            )
-            return "toggle_animations"
-        if self.menu_buttons[2].clicked(position):
             return "quit"
         return None
 
