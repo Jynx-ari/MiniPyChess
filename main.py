@@ -120,7 +120,8 @@ def handle_game_key(key):
 
 
 def main():
-    global app_state, running
+    
+    global app_state, running, move_animation
 
     if current_device:
         print(current_device)
