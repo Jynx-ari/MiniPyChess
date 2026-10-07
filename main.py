@@ -1,14 +1,16 @@
 import platform
 import pygame
+import chess
 
 from game import ChessGame
 from ui import UI
+from ai import StockfishAI
 
 
 WIDTH = 640
 HEIGHT = 640
 
-vsAI = False
+vsAI = True
 aiElo = 500
 playerColor = "White"
 
@@ -21,12 +23,36 @@ pygame.display.set_caption("MiniPyChess")
 
 ui = UI(screen)
 game = ChessGame()
+ai = StockfishAI(aiElo) if vsAI else None
 
 app_state = "menu"
 running = True
 
 
+def is_ai_turn():
+    if not vsAI:
+        return False
+
+    if playerColor == "White":
+        return game.board.turn == chess.BLACK
+
+    return game.board.turn == chess.WHITE
+
+
+def make_ai_move():
+    if ai is None or game.game_over or game.is_promotion_pending():
+        return
+
+    move = ai.get_move(game.board)
+    if move is not None:
+        game.board.push(move)
+        game.check_game()
+
+
 def handle_game_click(position):
+    if is_ai_turn():
+        return
+
     if game.is_promotion_pending():
         ui.handle_promotion_click(position, game)
         return
@@ -73,8 +99,13 @@ def main():
 
             elif app_state == "game":
                 handle_game_click(event.pos)
+
                 if game.game_over:
                     app_state = "game_over"
+                elif is_ai_turn() and not game.is_promotion_pending():
+                    make_ai_move()
+                    if game.game_over:
+                        app_state = "game_over"
 
             elif app_state == "game_over":
                 action = ui.handle_game_over_click(event.pos)
@@ -91,6 +122,9 @@ def main():
             ui.draw_game(game)
         elif app_state == "game_over":
             ui.draw_game_over(game)
+
+    if ai is not None:
+        ai.quit()
 
     pygame.quit()
 
