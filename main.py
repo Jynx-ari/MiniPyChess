@@ -26,7 +26,13 @@ supportedDevices = ["Android", "Linux", "Windows"]
 if platform.system() in supportedDevices:
   current_device = platform.system()
   print(current_device)
-  
+
+
+vsAI = False
+aiElo=500
+playerColor = "White"
+
+
 
 # ============================================================
 # ASSETS
