@@ -33,6 +33,9 @@ AI_DELAY_MS = 3000
 ai_thinking = False
 ai_think_start = 0
 
+# Toggle move animations here.
+moveAnimations = True
+
 MOVE_ANIMATION_MS = 220
 move_animation = None
 move_animation_start = 0
@@ -50,12 +53,16 @@ def is_ai_turn():
 
 def make_ai_move():
     if ai is None or game.game_over or game.is_promotion_pending():
-        return
+        return False
 
     move = ai.get_move(game.board)
-    if move is not None:
-        game.board.push(move)
-        game.check_game()
+    if move is None:
+        return False
+
+    game.board.push(move)
+    game.last_move = move
+    game.check_game()
+    return True
 
 
 def handle_game_click(position):
@@ -74,7 +81,7 @@ def handle_game_click(position):
 def start_move_animation():
     global move_animation, move_animation_start
 
-    if not ui.animations_enabled or game.last_move is None:
+    if not moveAnimations or game.last_move is None:
         move_animation = None
         return False
 
@@ -94,6 +101,10 @@ def finish_ai_turn():
 
     make_ai_move()
     ai_thinking = False
+
+    if moveAnimations and game.last_move is not None:
+        start_move_animation()
+        return "game"
 
     if game.game_over:
         return "game_over"
@@ -140,16 +151,16 @@ def main():
 
             elif app_state == "game":
                 if not ai_thinking and move_animation is None:
+                    # Clear the previous move so an invalid click cannot
+                    # accidentally replay its animation.
+                    game.last_move = None
                     handle_game_click(event.pos)
 
-                    if game.game_over:
-                        if ui.animations_enabled and game.last_move is not None:
+                    if game.last_move is not None:
+                        if moveAnimations:
                             start_move_animation()
-                        else:
+                        elif game.game_over:
                             app_state = "game_over"
-                    elif game.last_move is not None:
-                        if start_move_animation():
-                            pass
                         elif is_ai_turn() and not game.is_promotion_pending():
                             start_ai_thinking()
 
@@ -158,8 +169,6 @@ def main():
                 if action == "rematch":
                     game.reset()
                     app_state = "game"
-                    if is_ai_turn():
-                        start_ai_thinking()
                     if is_ai_turn():
                         start_ai_thinking()
                 elif action == "menu":
