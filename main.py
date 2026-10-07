@@ -1,5 +1,6 @@
 import pygame
 import chess
+import platform
 
 
 # ============================================================
@@ -20,6 +21,12 @@ font = pygame.font.SysFont(None, 30)
 
 board = chess.Board()
 
+current_device = None
+supportedDevices = ["Android", "Linux", "Windows"]
+if platform.system() in supportedDevices:
+  current_device = platform.system()
+  print(current_device)
+  
 
 # ============================================================
 # ASSETS
