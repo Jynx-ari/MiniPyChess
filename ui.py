@@ -67,9 +67,12 @@ class UI:
                     f"assets/{color}_{name}.png"
                 )
 
+        self.animations_enabled = True
+
         self.menu_buttons = [
-            Button((190, 285, 260, 62), "PLAY", self.font, primary=True),
-            Button((190, 365, 260, 62), "QUIT", self.font),
+            Button((190, 270, 260, 62), "PLAY", self.font, primary=True),
+            Button((190, 350, 260, 62), "ANIMATIONS: ON", self.font),
+            Button((190, 430, 260, 62), "QUIT", self.font),
         ]
 
         self.game_over_buttons = [
@@ -95,6 +98,12 @@ class UI:
         if self.menu_buttons[0].clicked(position):
             return "game"
         if self.menu_buttons[1].clicked(position):
+            self.animations_enabled = not self.animations_enabled
+            self.menu_buttons[1].text = (
+                "ANIMATIONS: ON" if self.animations_enabled else "ANIMATIONS: OFF"
+            )
+            return "toggle_animations"
+        if self.menu_buttons[2].clicked(position):
             return "quit"
         return None
 
@@ -166,10 +175,13 @@ class UI:
             text = label_font.render(self.RANKS[row], True, color)
             self.screen.blit(text, (5, row * self.TILE + 4))
 
-    def draw_pieces(self, game):
+    def draw_pieces(self, game, skip_square=None):
         for row in range(8):
             for col in range(8):
                 square = chess.square(col, 7 - row)
+                if square == skip_square:
+                    continue
+
                 piece = game.board.piece_at(square)
 
                 if piece is None:
@@ -269,6 +281,33 @@ class UI:
 
             image = self.piece_images[f"{color}_{name}"]
             self.screen.blit(image, image.get_rect(center=rect.center))
+
+    def draw_move_animation(self, game, move, progress):
+        self.draw_board()
+        self.draw_labels()
+
+        self.overlay.fill((0, 0, 0, 0))
+        self.draw_pieces(game, skip_square=move.to_square)
+        self.screen.blit(self.overlay, (0, 0))
+
+        start_col = chess.square_file(move.from_square)
+        start_row = 7 - chess.square_rank(move.from_square)
+        end_col = chess.square_file(move.to_square)
+        end_row = 7 - chess.square_rank(move.to_square)
+
+        x = ((1 - progress) * (start_col * self.TILE) +
+             progress * (end_col * self.TILE) + 10)
+        y = ((1 - progress) * (start_row * self.TILE) +
+             progress * (end_row * self.TILE) + 10)
+
+        piece = game.board.piece_at(move.to_square)
+        if piece is not None:
+            color = chess.COLOR_NAMES[piece.color]
+            name = chess.piece_name(piece.piece_type)
+            image = self.piece_images[f"{color}_{name}"]
+            self.screen.blit(image, (round(x), round(y)))
+
+        pygame.display.flip()
 
     def draw_game(self, game, flip=True):
         self.draw_board()
