@@ -28,6 +28,11 @@ ai = StockfishAI(aiElo) if vsAI else None
 app_state = "menu"
 running = True
 
+clock = pygame.time.Clock()
+AI_DELAY_MS = 3000
+ai_thinking = False
+ai_think_start = 0
+
 
 def is_ai_turn():
     if not vsAI:
@@ -62,6 +67,24 @@ def handle_game_click(position):
         game.select_square(square)
 
 
+def start_ai_thinking():
+    global ai_thinking, ai_think_start
+    ai_thinking = True
+    ai_think_start = pygame.time.get_ticks()
+
+
+def finish_ai_turn():
+    global ai_thinking
+
+    make_ai_move()
+    ai_thinking = False
+
+    if game.game_over:
+        return "game_over"
+
+    return "game"
+
+
 def handle_game_key(key):
     if key == pygame.K_m:
         game.show_moves = not game.show_moves
@@ -94,34 +117,46 @@ def main():
                 if action == "game":
                     game.reset()
                     app_state = "game"
+                    if is_ai_turn():
+                        start_ai_thinking()
                 elif action == "quit":
                     running = False
 
             elif app_state == "game":
-                handle_game_click(event.pos)
+                if not ai_thinking:
+                    handle_game_click(event.pos)
 
-                if game.game_over:
-                    app_state = "game_over"
-                elif is_ai_turn() and not game.is_promotion_pending():
-                    make_ai_move()
                     if game.game_over:
                         app_state = "game_over"
+                    elif is_ai_turn() and not game.is_promotion_pending():
+                        start_ai_thinking()
 
             elif app_state == "game_over":
                 action = ui.handle_game_over_click(event.pos)
                 if action == "rematch":
                     game.reset()
                     app_state = "game"
+                    if is_ai_turn():
+                        start_ai_thinking()
                 elif action == "menu":
                     game.reset()
                     app_state = "menu"
 
+        if app_state == "game" and ai_thinking:
+            if pygame.time.get_ticks() - ai_think_start >= AI_DELAY_MS:
+                app_state = finish_ai_turn()
+
         if app_state == "menu":
             ui.draw_menu()
         elif app_state == "game":
-            ui.draw_game(game)
+            if ai_thinking:
+                ui.draw_ai_thinking(game)
+            else:
+                ui.draw_game(game)
         elif app_state == "game_over":
             ui.draw_game_over(game)
+
+        clock.tick(60)
 
     if ai is not None:
         ai.quit()
