@@ -9,6 +9,7 @@ class ChessGame:
         self.game_over = False
         self.winner = None
         self.promotion_square = None
+        self.last_move = None
 
     def reset(self):
         self.__init__()
@@ -50,6 +51,7 @@ class ChessGame:
             return False
 
         self.board.push(move)
+        self.last_move = move
         self.clear_selection()
         self.check_game()
         return True
@@ -63,6 +65,7 @@ class ChessGame:
             return False
 
         self.board.push(move)
+        self.last_move = move
         self.promotion_square = None
         self.clear_selection()
         self.check_game()
