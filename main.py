@@ -2,6 +2,14 @@ import platform
 import pygame
 import chess
 
+
+supported_devices = ["Android", "Linux", "Windows"]
+current_device = platform.system() if platform.system() in supported_devices else None
+
+
+if current_device:
+        print(current_device)
+
 from game import ChessGame
 from ui import UI
 from ai import StockfishAI
@@ -13,9 +21,6 @@ HEIGHT = 640
 vsAI = True
 aiElo = 500
 playerColor = "White"
-
-supported_devices = ["Android", "Linux", "Windows"]
-current_device = platform.system() if platform.system() in supported_devices else None
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -123,8 +128,7 @@ def main():
     
     global app_state, running, move_animation
 
-    if current_device:
-        print(current_device)
+    
 
     while running:
         for event in pygame.event.get():
